@@ -33,7 +33,26 @@ cp .env.example .env
 uvicorn project_agent.main:app --reload
 ```
 
-브라우저: http://127.0.0.1:8000/docs (Swagger) · http://127.0.0.1:8000/ (채팅 UI)
+브라우저: http://127.0.0.1:8000/docs (Swagger) · 레거시 채팅: http://127.0.0.1:8000/legacy
+
+### React UI (드래그앤드롭)
+
+터미널 1 — API:
+
+```bash
+source .venv/bin/activate
+uvicorn project_agent.main:app --reload
+```
+
+터미널 2 — 프론트:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+브라우저: http://127.0.0.1:5173
 
 ### Ollama (온프레 LLM, 선택)
 

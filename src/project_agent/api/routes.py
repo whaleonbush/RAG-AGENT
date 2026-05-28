@@ -145,8 +145,8 @@ def chat(project_id: str, body: ChatRequest) -> ChatResponse:
         raise HTTPException(404, str(e)) from e
 
 
-@router.get("/", response_class=HTMLResponse)
-def ui_home() -> str:
+@router.get("/legacy", response_class=HTMLResponse)
+def ui_legacy() -> str:
     return _CHAT_HTML
 
 
