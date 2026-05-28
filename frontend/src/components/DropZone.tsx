@@ -7,17 +7,18 @@ interface Props {
   disabled?: boolean;
 }
 
-const accept = {
-  "application/pdf": [".pdf"],
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx", ".xlsm"],
-  "text/plain": [".txt", ".md", ".markdown", ".csv"],
-};
+/** 확장자 기반 파일 필터링 (드래그앤드롭 시 MIME 타입이 불일치하는 문제 해결) */
+function isSupportedFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return SUPPORTED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
 
 export default function DropZone({ onFiles, disabled }: Props) {
   const onDrop = useCallback(
     (accepted: File[]) => {
-      if (accepted.length) onFiles(accepted);
+      // accept prop 대신 확장자 기반으로 필터링
+      const valid = accepted.filter(isSupportedFile);
+      if (valid.length) onFiles(valid);
     },
     [onFiles]
   );
@@ -25,7 +26,6 @@ export default function DropZone({ onFiles, disabled }: Props) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     disabled,
-    accept,
     multiple: true,
   });
 

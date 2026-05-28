@@ -6,11 +6,27 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/projects": "http://127.0.0.1:8000",
-      "/health": "http://127.0.0.1:8000",
-      "/legacy": "http://127.0.0.1:8000",
-      "/docs": "http://127.0.0.1:8000",
-      "/openapi.json": "http://127.0.0.1:8000",
+      "/projects": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/health": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/legacy": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/docs": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/openapi.json": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -73,6 +73,11 @@ async def upload_document(
     file: UploadFile = File(...),
     title: Optional[str] = None,
 ) -> DocumentInfo:
+    import logging
+    logger = logging.getLogger("project_agent")
+    logger.info("UPLOAD: project=%s filename=%s content_type=%s title=%s",
+                project_id, file.filename, file.content_type, title)
+
     _ensure_project(project_id)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in SUPPORTED_EXTENSIONS:

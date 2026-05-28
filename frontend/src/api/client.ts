@@ -25,10 +25,18 @@ export async function apiFetch<T>(
     }
   }
   if (!res.ok) {
-    const detail =
-      typeof data === "object" && data && "detail" in data
-        ? String((data as { detail: unknown }).detail)
-        : res.statusText;
+    let detail = res.statusText;
+    if (typeof data === "object" && data && "detail" in data) {
+      const raw = (data as { detail: unknown }).detail;
+      // FastAPI 422 validation error는 배열 형태
+      if (Array.isArray(raw)) {
+        detail = raw
+          .map((e: { msg?: string; loc?: unknown }) => `${e.loc ? JSON.stringify(e.loc) : ""}: ${e.msg ?? ""}`)
+          .join("; ");
+      } else {
+        detail = String(raw);
+      }
+    }
     throw new ApiError(detail, res.status, data);
   }
   return data as T;

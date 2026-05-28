@@ -30,23 +30,24 @@ def generate_answer(question: str, hits: List[dict]) -> Tuple[str, bool]:
     user_prompt = f"[컨텍스트]\n{context}\n\n[질문]\n{question}"
 
     try:
-        with httpx.Client(base_url=settings.ollama_base_url, timeout=180.0) as client:
+        with httpx.Client(base_url=settings.ollama_base_url, timeout=300.0, trust_env=False) as client:
             resp = client.post(
                 "/api/chat",
                 json={
                     "model": settings.ollama_model,
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_prompt},
+                        {"role": "user", "content": user_prompt[:4000]},
                     ],
                     "stream": False,
-                    "options": {"temperature": 0.2},
+                    "options": {"temperature": 0.2, "num_predict": 512},
                 },
             )
             resp.raise_for_status()
             content = resp.json()["message"]["content"]
             return content.strip(), True
-    except Exception:
+    except Exception as exc:
+        print(f"[OLLAMA ERROR] {type(exc).__name__}: {exc}")
         return _fallback_answer(question, hits), False
 
 

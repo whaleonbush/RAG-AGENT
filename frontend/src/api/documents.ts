@@ -11,12 +11,35 @@ export async function uploadDocument(
   title?: string
 ): Promise<DocumentInfo> {
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", file, file.name);
   const qs = title ? `?title=${encodeURIComponent(title)}` : "";
-  return apiFetch(`/projects/${projectId}/documents/upload${qs}`, {
+  const base = import.meta.env.VITE_API_BASE ?? "";
+  const url = `${base}/projects/${projectId}/documents/upload${qs}`;
+
+  console.log("[uploadDocument]", file.name, file.size, file.type, "→", url);
+
+  const res = await fetch(url, {
     method: "POST",
     body: form,
   });
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const data = await res.json();
+      if (Array.isArray(data?.detail)) {
+        detail = data.detail
+          .map((e: { msg?: string; loc?: unknown }) =>
+            `${e.loc ? JSON.stringify(e.loc) : ""}: ${e.msg ?? ""}`)
+          .join("; ");
+      } else if (data?.detail) {
+        detail = String(data.detail);
+      }
+    } catch { /* ignore */ }
+    throw new Error(`Upload failed (${res.status}): ${detail}`);
+  }
+
+  return res.json();
 }
 
 export function createManualNote(
