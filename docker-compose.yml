@@ -1,0 +1,16 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # API는 로컬에서 uvicorn으로 실행 (GPU/볼륨 마운트 편의)
+  # docker compose up ollama -d
+  # ollama pull llama3.2
+  # ollama pull nomic-embed-text
+
+volumes:
+  ollama_data:
