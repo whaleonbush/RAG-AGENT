@@ -6,6 +6,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 storage/
+storage_demo/
 src/project_agent.egg-info/
 *.egg-info/
 dist/
