@@ -37,10 +37,10 @@ def generate_answer(question: str, hits: List[dict]) -> Tuple[str, bool]:
                     "model": settings.ollama_model,
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_prompt[:4000]},
+                        {"role": "user", "content": user_prompt[:8000]},
                     ],
                     "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 512},
+                    "options": {"temperature": 0.3, "num_predict": 1024},
                 },
             )
             resp.raise_for_status()

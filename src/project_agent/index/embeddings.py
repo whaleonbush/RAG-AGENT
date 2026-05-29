@@ -63,16 +63,44 @@ class OllamaEmbedProvider(EmbeddingProvider):
     def __init__(self) -> None:
         self.settings = get_settings()
 
+    @staticmethod
+    def _clean_text(text: str) -> str:
+        """Ollama 임베딩에 실패할 수 있는 제어 문자 등을 제거합니다."""
+        import re
+        # 제어 문자 제거 (개행, 탭은 유지)
+        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+        # 너무 긴 텍스트는 자름 (bge-m3 최대 8192 토큰)
+        return text[:3000]
+
     def embed(self, texts: List[str]) -> List[List[float]]:
         vectors: List[List[float]] = []
-        with httpx.Client(base_url=self.settings.ollama_base_url, timeout=120.0) as client:
-            for text in texts:
-                resp = client.post(
-                    "/api/embeddings",
-                    json={"model": self.settings.ollama_embed_model, "prompt": text},
-                )
-                resp.raise_for_status()
-                vectors.append(resp.json()["embedding"])
+        cleaned = [self._clean_text(t) for t in texts]
+        batch_size = 10  # Ollama 과부하 방지
+        with httpx.Client(base_url=self.settings.ollama_base_url, timeout=120.0, trust_env=False) as client:
+            for i in range(0, len(cleaned), batch_size):
+                batch = cleaned[i:i + batch_size]
+                try:
+                    resp = client.post(
+                        "/api/embed",
+                        json={"model": self.settings.ollama_embed_model, "input": batch},
+                    )
+                    resp.raise_for_status()
+                    vectors.extend(resp.json()["embeddings"])
+                except Exception as e:
+                    print(f"[EMBED ERROR] Batch {i}-{i+len(batch)} failed: {e}")
+                    # 개별 처리 폴백
+                    for text in batch:
+                        try:
+                            resp = client.post(
+                                "/api/embed",
+                                json={"model": self.settings.ollama_embed_model, "input": [text]},
+                            )
+                            resp.raise_for_status()
+                            vectors.extend(resp.json()["embeddings"])
+                        except Exception as e2:
+                            print(f"[EMBED ERROR] Single embed failed (len={len(text)}): {e2}")
+                            # 더미 벡터로 대체 (1024차원 - bge-m3)
+                            vectors.append([0.0] * 1024)
         return vectors
 
 
