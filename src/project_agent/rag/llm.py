@@ -24,28 +24,47 @@ def build_context_block(hits: List[dict]) -> str:
     return "\n\n".join(blocks)
 
 
+_client: httpx.Client | None = None
+
+
+def _get_client(base_url: str) -> httpx.Client:
+    global _client
+    if _client is None:
+        # trust_env=False: 사내 프록시 환경변수가 localhost Ollama 호출을 가로채는 것을 방지.
+        _client = httpx.Client(base_url=base_url, timeout=300.0, trust_env=False)
+    return _client
+
+
 def generate_answer(question: str, hits: List[dict]) -> Tuple[str, bool]:
     settings = get_settings()
     context = build_context_block(hits)
     user_prompt = f"[컨텍스트]\n{context}\n\n[질문]\n{question}"
 
     try:
-        with httpx.Client(base_url=settings.ollama_base_url, timeout=300.0, trust_env=False) as client:
-            resp = client.post(
-                "/api/chat",
-                json={
-                    "model": settings.ollama_model,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_prompt[:8000]},
-                    ],
-                    "stream": False,
-                    "options": {"temperature": 0.3, "num_predict": 1024},
+        client = _get_client(settings.ollama_base_url)
+        resp = client.post(
+            "/api/chat",
+            json={
+                "model": settings.ollama_model,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt[:8000]},
+                ],
+                "stream": False,
+                # keep_alive: 모델을 메모리에 유지해 매 요청마다 재로딩하지 않는다(CPU에서 특히 중요).
+                "keep_alive": settings.ollama_keep_alive,
+                "options": {
+                    "temperature": 0.2,
+                    # num_ctx: 컨텍스트 창을 제한해 CPU 처리량을 높인다.
+                    "num_ctx": settings.ollama_num_ctx,
+                    # num_predict: 답변 최대 토큰을 제한해 생성 시간을 줄인다.
+                    "num_predict": settings.ollama_num_predict,
                 },
-            )
-            resp.raise_for_status()
-            content = resp.json()["message"]["content"]
-            return content.strip(), True
+            },
+        )
+        resp.raise_for_status()
+        content = resp.json()["message"]["content"]
+        return content.strip(), True
     except Exception as exc:
         print(f"[OLLAMA ERROR] {type(exc).__name__}: {exc}")
         return _fallback_answer(question, hits), False

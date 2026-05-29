@@ -37,17 +37,13 @@ class VectorIndex:
         col = self._get_collection(project_id)
         self.delete_document(project_id, document.id)
 
-        ids: List[str] = []
-        documents: List[str] = []
-        metadatas: List[Dict] = []
-
         texts = [c.text for c in chunks]
         embeddings = self.embedder.embed(texts)
 
-        for chunk, emb in zip(chunks, embeddings):
-            cid = f"{document.id}_{chunk.chunk_index}"
-            ids.append(cid)
-            documents.append(chunk.text)
+        ids: List[str] = []
+        metadatas: List[Dict] = []
+        for chunk in chunks:
+            ids.append(f"{document.id}_{chunk.chunk_index}")
             metadatas.append(
                 {
                     "document_id": document.id,
@@ -57,7 +53,9 @@ class VectorIndex:
                     "chunk_index": chunk.chunk_index,
                 }
             )
-            col.add(ids=[cid], documents=documents[-1:], embeddings=[emb], metadatas=[metadatas[-1]])
+
+        # 단일 배치 삽입: 청크가 많을수록 1건씩 add 하는 것보다 수 배 빠르다.
+        col.add(ids=ids, documents=texts, embeddings=embeddings, metadatas=metadatas)
 
         return len(chunks)
 
