@@ -13,3 +13,5 @@ dist/
 build/
 frontend/node_modules/
 frontend/dist/
+.vite/
+frontend/.vite/
